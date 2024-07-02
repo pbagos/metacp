@@ -1,0 +1,62 @@
+
+Selected Method: *** Bonferroni with effective number of tests ***
+Effective Number of Tests (Cheverud-Nyholt): 3.3245802787753
+Combined p-value for rs1193179: 0.001263340505934614
+Combined p-value for rs932206: 0.002792647434171252
+Combined p-value for rs1978717: 0.015259823479578627
+Combined p-value for rs11084127: 0.01752053806914583
+Combined p-value for rs1111875: 0.026796117046928913
+Combined p-value for rs11084128: 0.03058613856473276
+Combined p-value for rs282705: 0.03812595417896726
+Combined p-value for rs1836002: 0.0533412282828103
+Combined p-value for rs3740878: 0.0555873147191509
+Combined p-value for rs11037909: 0.059295884020124735
+Combined p-value for rs8101509: 0.059335114067414284
+Effective Number of Tests (Gao): 3
+Combined p-value for rs1193179: 0.00114
+Combined p-value for rs932206: 0.00252
+Combined p-value for rs1978717: 0.013770000000000001
+Combined p-value for rs11084127: 0.01581
+Combined p-value for rs1111875: 0.02418
+Combined p-value for rs11084128: 0.0276
+Combined p-value for rs282705: 0.034403699999999995
+Combined p-value for rs1836002: 0.048133499999999996
+Combined p-value for rs3740878: 0.050160300000000005
+Combined p-value for rs11037909: 0.0535068
+Combined p-value for rs8101509: 0.0535422
+Effective Number of Tests (Galwey): 1.8098200331141008
+Combined p-value for rs1193179: 0.0006877316125833583
+Combined p-value for rs932206: 0.0015202488278158448
+Combined p-value for rs1978717: 0.008307073951993723
+Combined p-value for rs11084127: 0.009537751574511312
+Combined p-value for rs1111875: 0.014587149466899652
+Combined p-value for rs11084128: 0.016650344304649727
+Combined p-value for rs282705: 0.020754835157749195
+Combined p-value for rs1836002: 0.02903765752129919
+Combined p-value for rs3740878: 0.03026037193567108
+Combined p-value for rs11037909: 0.03227922618260986
+Combined p-value for rs8101509: 0.032300582059000604
+Effective Number of Tests (Li-Ji): 1.999999999999997
+Combined p-value for rs1193179: 0.0007599999999999988
+Combined p-value for rs932206: 0.0016799999999999975
+Combined p-value for rs1978717: 0.009179999999999987
+Combined p-value for rs11084127: 0.010539999999999985
+Combined p-value for rs1111875: 0.016119999999999975
+Combined p-value for rs11084128: 0.018399999999999972
+Combined p-value for rs282705: 0.022935799999999965
+Combined p-value for rs1836002: 0.03208899999999995
+Combined p-value for rs3740878: 0.033440199999999955
+Combined p-value for rs11037909: 0.035671199999999945
+Combined p-value for rs8101509: 0.03569479999999994
+Bonferroni's correction with g* =  1.0000000000733085:
+Combined p-value for rs1193179: 0.00038000000002785724
+Combined p-value for rs932206: 0.0008400000000615791
+Combined p-value for rs1978717: 0.004590000000336486
+Combined p-value for rs11084127: 0.005270000000386336
+Combined p-value for rs1111875: 0.008060000000590865
+Combined p-value for rs11084128: 0.009200000000674438
+Combined p-value for rs282705: 0.011467900000840693
+Combined p-value for rs1836002: 0.016044500001176198
+Combined p-value for rs3740878: 0.016720100001225726
+Combined p-value for rs11037909: 0.0178356000013075
+Combined p-value for rs8101509: 0.017847400001308366
