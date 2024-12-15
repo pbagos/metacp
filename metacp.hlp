@@ -1,0 +1,75 @@
+metacp 13.0
+-------------------------
+
+A versatile software package for combining dependent or independent p-values
+
+Syntax
+------
+    varlist(numeric),method(string) [ corr_matrix(varlist) ]
+
+Description
+-----------
+`metacp` is designed to perform meta-analysis of the p-values of the variables(studies) specified in `varlist`.
+ The user selects a method to perform the combination the p-values of each observation.
+
+Options
+-------
+method(string) the combination of the p-values can be performed with eighteen(18) different methods:
+
+logitp: This method computes the combined p-value using a logistic transformation of the individual p-values. It sums the logit-transformed p-values and then applies a t-distribution to calculate the combined p-value.
+meanp: This method calculates the combined p-value by taking the mean of the individual p-values and transforming it using a normal distribution.
+fisherp: This method uses Fisher's method to combine p-values by summing the log-transformed p-values and applying a chi-squared distribution to the result.
+stoufferp: This method combines p-values using Stouffer's Z-score method. It converts each p-value to a Z-score, sums these Z-scores, and then transforms the sum using a normal distribution.
+invchi2p: This method combines p-values using the inverse chi-squared method, summing the inverse chi-squared statistics and transforming the sum using a chi-squared distribution.
+binomialp: This method uses a binomial test to combine p-values, counting the number of p-values below a specified threshold and using the binomial distribution to calculate the combined p-value.
+cauchyp: This method combines p-values using a Cauchy distribution. It transforms each p-value using the tangent function, sums these transformed values, and then transforms the sum using the inverse Cauchy cumulative distribution function.
+minp: This method calculates the combined p-value by taking the minimum of the individual p-values and adjusting it for the number of tests.
+MCM: This method combines p-values using the MinP-Cauchy-MinP (MCM) method. It first calculates the combined p-values using both the Cauchy and MinP methods and then takes the minimum of these values.
+CMC: This method combines p-values using the Cauchy-MinP-Cauchy (CMC) method. It transforms the individual p-values using the tangent function, sums these values, and then transforms the sum using the inverse Cauchy cumulative distribution function.
+bonferronip: This method applies the Bonferroni correction to combine p-values by adjusting the minimum p-value for the number of tests.
+bonferronig_p: This method uses a generalized Bonferroni correction, adjusting the minimum p-value for the number of tests and the maximum correlation among the tests.
+cheverud_nyholtp: This method combines p-values using the Cheverud-Nyholt method, which adjusts for the effective number of tests based on eigenvalues of the correlation matrix.
+li_jip: This method uses the Li-Ji method to combine p-values, adjusting for the effective number of tests by considering the eigenvalues of the correlation matrix.
+gaop: This method combines p-values using Gao's method, adjusting for the effective number of tests by considering a threshold cumulative eigenvalue sum.
+galweyp: This method combines p-values using Galwey's method, adjusting for the effective number of tests based on the ratio of the sum of squared eigenvalues to the sum of eigenvalues.
+EBM: This method combines p-values using the Effective Brownian Motion (EBM) method, adjusting for correlations among tests by considering the covariance matrix.
+KostsMethodEBM: This method combines p-values using Kost's adjustment to the EBM method, incorporating a polynomial fit for the correlation structure.
+BrownbyYang: This method uses the Brown-Yang adjustment for combining p-values, accounting for correlations among tests with a polynomial fit and bias correction. 
+
+
+
+corr_matrix(varlist)   The user can also provide a conditional correlation matrix in case of dependent tests.
+
+
+References
+--------------------
+Poole William, Gibbs David L., Shmulevich Ilya, Bernard B., Knijnenburg Theo A. (2016) “Combining dependent P-values with an empirical adaptation of Brown’s method”, Bioinformatics, 32, i430–i436, doi: 10.1093/bioinformatics/btw438
+Cinar O., Viechtbauer W. (2022), “The poolr Package for Combining Independent and Dependent p Values”, Journal of Statistical Software, Volume 101, Issue 1., doi: 10.18637/jss.v101.i01
+Wilsona Daniel J. (2019), “The harmonic mean p-value for combining dependent tests”, PNAS, 116 (4), 1195-1200,  https://doi.org/10.1073/pnas.1814092116
+Chen Zhongxue, (2022), “Robust tests for combining p values under arbitrary dependency structures”, www.nature.com/scientificreports/, 2:3158, https://doi.org/10.1038/s41598-022-07094-7
+Shi Q., Pavey E.S. and Carter R.E. (2012), “Bonferroni-based correction factor for multiple, correlated endpoints”, Pharmaceutical Statistics, 11, 300–309, (wileyonlinelibrary.com) DOI: 10.1002/pst.1514
+Liu Y., Xie J. (2020), “Cauchy combination test: a powerful test with analytic p-value calculation under arbitrary dependency structures”, HHS Public Access, 115(529), 393–402, doi:10.1080/01621459.2018.1554485
+Dewey M. (2016), “Meta-Analysis of Significance Values”, metap-package
+Winner L. (2004), Introduction to Biostatistics, Department of Statistics University of Florida
+Yang J.J., Li J., Williams L.K., Buu A. (2016), “An efficient genome-wide association test for multivariate phenotypes based on the Fisher combination function”, BMC Bioinformatics, 17: 19, doi:10.1186/s12859-015-0868-6
+Dimou N., et. Al. (2017), GWAR: Robust analysis and meta-analysis of GWAS, Bioinformatics, https://doi.org/10.1093/bioinformatics/btx008
+
+
+Examples
+--------------------
+
+    . metacp _p1-_p3,method(fisherp)
+	. metacp var1-var11,method(galweyp),  corr_matrix(C1-C11)
+
+Authors
+--------------------
+
+       Evgenia Nikolitsa, Panagiota Kontou , Pantelis Bagos
+	   Department of Computer Science and Biomedical Informatics, University of Thessaly, Lamia, GR35100, Greece 
+	   Department of Mathematics, University of Thessaly, Lamia, GR35100, Greece 
+	   email: http://www.compgen.org/tools/
+
+
+Also See
+--------
+help for metap
