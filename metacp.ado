@@ -88,38 +88,38 @@ else if "`method'" == "invchi2p" {
 	di "Combined p-value:", _inv_chi2_p
 }
 
-else if "`method'" == "binomialp" {
+else if "`method'" == "binomialp" {	
 
-	local alpha = 0.05
-	local a = 0.5
-	tempvar num_vars num_of_successes 
+	local alpha 0.05
+	gen _binomial_p = .
 	
-
-	
-	local `num_of_successes' = 0
-	
-	* Loop through each variable in the varlist
-	foreach var of varlist `varlist' {
-		if `var' < `alpha' {
-			* Increment count of successes
-			local `num_of_successes' = `num_of_successes' + 1
+	forval i = 1/`=_N' {
+		* Reset counts for each observation
+		local num_of_successes = 0
+		local num_vars = 0
+		
+		* Loop through each variable in the varlist
+		foreach var of varlist `varlist'{
+			if `var'[`i'] < `alpha' {
+				* Increment count of successes
+				local num_of_successes = `num_of_successes' + 1
+			}
+			local num_vars = `num_vars' + 1
 		}
+		
+		* Calculate combined p-value
+		local combined_p = 0
+		forval x = `num_of_successes'/`num_vars'{
+			local binomial_prob = binomialp(`num_vars', `x', `alpha')
+			local combined_p = `combined_p' + `binomial_prob'
+		}
+		
+		* Store the combined p-value in the dataset
+		replace _binomial_p = `combined_p' in `i'
+		
+		* Print combined p-value for debugging
+		di "Combined p-value for observation `i': " , _binomial_p
 	}
-	
-	* Initialize combined p-value
-	local pmf = 0
-	
-	* Calculate combined p-value
-	forvalues x = `num_of_successes'/`num_vars' {
-		* Calculate probability mass function for each possible success count
-		local pmf = `pmf' + binomial(`x', `num_vars', `a')
-	}
-	
-	* Generate combined p-value
-	gen _binomial_p = `pmf'
-	
-	* Display combined p-value
-	di "Combined p-value:", _binomial_p
 }
 
 else if "`method'" == "cauchyp" {
@@ -232,18 +232,13 @@ else if "`method'" == "bonferronig_p" {
     * Display combined p-value
     di "Combined p-value:", _bonferronig_p
 }
-/*
+
 else if "`method'" == "cheverud_nyholtp" {
     local end_mata end 
 	mkmat `corr_matrix', matrix(correlation_matrix)
 	matrix eigenvalues lambda V = correlation_matrix
 	mat list lambda
-	mata: 
-		lambda = st_matrix("lambda")
-
-		st_matrix("variance", diagonal(variance(lambda')))
-    `end_mata'
-	
+	mata: lambdaVar("‘lambda’")
 	mat eig_variance = variance
 
 	* Extract the value of the standard deviation
@@ -260,11 +255,7 @@ else if "`method'" == "li_jip" {
 	mkmat `corr_matrix', matrix(correlation_matrix)
 	matrix eigenvalues lambda V = correlation_matrix
 	mat list lambda
-	mata: 
-		lambda = st_matrix("lambda")
-		abs_eig = abs(lambda)
-		st_matrix("abs_eig", abs_eig)
-	`end_mata'
+	mata: absEig("‘lambda’")
 	
 	mat list abs_eig
 	scalar effective_number_of_tests = 0
@@ -289,16 +280,12 @@ else if "`method'" == "li_jip" {
 }
 
 else if "`method'" == "gaop" {
-	local end_mata end 
 
 	mkmat `corr_matrix', matrix(correlation_matrix)
 	matrix eigenvalues lambda V = correlation_matrix
 	mat list lambda
-	mata: 
-		lambda = st_matrix("lambda")
-		sum_eig = rowsum(lambda)
-		st_matrix("sum_eig", sum_eig)
-	`end_mata'
+	mata: sumEig("‘lambda’")
+
 	mat list sum_eig
 	scalar total_sum = sum_eig[1,1]
 	local rows = rowsof(lambda)
@@ -318,27 +305,13 @@ else if "`method'" == "gaop" {
 	di "GAO: " _gao_p
 }
 else if "`method'" == "galweyp" {
-	local end_mata end 
+	 
 
 	mkmat `corr_matrix', matrix(correlation_matrix)
 	matrix eigenvalues lambda V = correlation_matrix
 	mat list lambda
-	mata: 
-		lambda = st_matrix("lambda")
-		lambda_prime = J(rows(lambda), cols(lambda), 0)
-		for (i=1; i<=rows(lambda); i++) {
-			for (j=1; j<=cols(lambda); j++) {
-				if (lambda[i, j] > 0) {
-					lambda_prime[i, j] = lambda[i, j]
-				}
-			}
-		}
-		st_matrix("lambda_prime", lambda_prime)
-		sum_lambda_prime = rowsum(lambda_prime)
-		st_matrix("sum_lambda_prime", sum_lambda_prime)
-		sum_eig = rowsum(sqrt(lambda_prime))^2
-		st_matrix("sum_eig", sum_eig)
-	`end_mata'
+	mata: lambdaPrime("‘lambda’")
+		
 	mat list lambda_prime
 	mat list sum_lambda_prime
 	mat list sum_eig
@@ -349,7 +322,7 @@ else if "`method'" == "galweyp" {
 	egen min_val = rowmin(`varlist')
 	gen _galwey_p = min(1, min_val * effective_number_of_tests)
 	di "Galwey: " _galwey_p
-}*/
+}
 else if "`method'" == "EBM" {
 	corr `varlist', cov
 	matrix covar_matrix = r(C)
@@ -365,7 +338,7 @@ else if "`method'" == "EBM" {
 	local cov_sum = 0
 
 	forval r = 1/`m' {
-		forval c = `r'/`m' {
+		forval c = `=`r' + 1'/`m' {
 			local cov_sum = `cov_sum' + covar_matrix[`r', `c']
 		}
 	}
@@ -404,9 +377,7 @@ else if "`method'" == "KostsMethodEBM" {
 	matrix corr_matrix = r(C)
 	local m = rowsof(corr_matrix)
 	
-	*matrix accum R = _all, nocons dev
-	*matrix R = corr(R)
-	*mat list R
+	
 
 	local nrows = rowsof(corr_matrix)
 	local ncols = colsof(corr_matrix)
@@ -415,8 +386,8 @@ else if "`method'" == "KostsMethodEBM" {
 	matrix covar_matrix = J(`nrows', `ncols', .)
 
 	* Loop to compute covariance
-	forval i = 1/`nrows' {
-		forval j = 1/`ncols' {
+	forval i = 1/`ncols' {
+		forval j = `=`i' + 1'/`ncols' {
 			local corr_ij = corr_matrix[`i', `j']
 			
 			* Calculate covariance (assuming Kost's polynomial fit)
@@ -436,7 +407,7 @@ else if "`method'" == "KostsMethodEBM" {
 	local cov_sum = 0
 
 	forval r = 1/`m' {
-		forval c = `r'/`m' {
+		forval c = `=`r' + 1'/`m' {
 			local cov_sum = `cov_sum' + covar_matrix[`r', `c']
 		}
 	}
@@ -487,8 +458,8 @@ else if "`method'" == "BrownbyYang" {
 	matrix delta_matrix = J(`nrows', `ncols', .)
 
 	* Loop to compute covariance
-	forval i = 1/`nrows' {
-		forval j = 1/`ncols' {
+	forval i = 1/`ncols' {
+		forval j = `=`i' + 1'/`ncols' {
 			local corr_ij = corr_matrix[`i', `j']
 			local biased_corrected_cor = `corr_ij' *(1 + (1 - `corr_ij'^2 / 2 * (`ncols' -3)))
 
@@ -513,7 +484,7 @@ else if "`method'" == "BrownbyYang" {
 	local delta_sum = 0
 
 	forval r = 1/`m' {
-		forval c = `r'/`m' {
+		forval c = `=`r' + 1'/`m' {
 			local delta_sum = `delta_sum' + delta_matrix[`r', `c']
 		}
 	}
@@ -546,3 +517,51 @@ else {
         di "Invalid Method"
     }
 end
+
+version 13
+mata:
+void lambdaVar(matrix lambda)
+{
+	lambda = st_matrix("lambda")
+
+	st_matrix("variance", diagonal(variance(lambda')))
+}
+end
+
+mata: 
+void absEig(matrix lambda)
+{
+		lambda = st_matrix("lambda")
+		abs_eig = abs(lambda)
+		st_matrix("abs_eig", abs_eig)
+}
+end	
+
+mata: 
+void sumEig(matrix lambda)
+{
+		lambda = st_matrix("lambda")
+		sum_eig = rowsum(lambda)
+		st_matrix("sum_eig", sum_eig)
+}
+end	
+
+mata: 
+void lambdaPrime(matrix lambda)
+{
+		lambda = st_matrix("lambda")
+		lambda_prime = J(rows(lambda), cols(lambda), 0)
+		for (i=1; i<=rows(lambda); i++) {
+			for (j=1; j<=cols(lambda); j++) {
+				if (lambda[i, j] > 0) {
+					lambda_prime[i, j] = lambda[i, j]
+				}
+			}
+		}
+		st_matrix("lambda_prime", lambda_prime)
+		sum_lambda_prime = rowsum(lambda_prime)
+		st_matrix("sum_lambda_prime", sum_lambda_prime)
+		sum_eig = rowsum(sqrt(lambda_prime))^2
+		st_matrix("sum_eig", sum_eig)
+}
+end	
