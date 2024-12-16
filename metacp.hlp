@@ -82,7 +82,7 @@ Examples
 The following data are obtained by GWAR 
 Assuming that the data are in the following format:
 
-snp			chr	r0	r1	r2	s0	s1	s2
+snp		chr	r0	r1	r2	s0	s1	s2
 rs7900150	10	129	326	229	198	325	143
 rs7100927	10	129	328	229	198	326	143
 rs1193179	1	340	288	58	423	202	44
@@ -158,10 +158,6 @@ We run the metacp methods cct, minp, cmc, mcm for the combination of p-values _p
 . metacp _p1-_p3,method(minp) 
 . metacp _p1-_p3,method(mcm)
 . metacp _cauchy_p _min_p,method(cmc) 
-
-
-
-. metacp var1-var11,method(galweyp),  corr_matrix(C1-C11)   
 	
 	                   
      
