@@ -101,8 +101,7 @@ def binomial_test(p_values):
     # Calculate the binomial probability of observing at most num_successes successes
     combined_p = 0
     for x in range(r, k + 1):
-        combined_p += math.factorial(k) / (math.factorial(x) * math.factorial(k - x)) * (alpha ** x) * (
-                    (1 - alpha) ** (k - x))
+        combined_p += math.factorial(k) / (math.factorial(x) * math.factorial(k - x)) * (alpha ** x) * ((1 - alpha) ** (k - x))
 
     return combined_p
 
@@ -199,8 +198,8 @@ def TransformData(data_vector):
 # Note: Method does not deal with missing values within the data.
 # Output: An m x m matrix of pairwise covariances between transformed raw data vectors
 def CalculateCovariances(data_matrix):
-    transformed_data_matrix = np.array([TransformData(f) for f in data_matrix])
-    covar_matrix = np.cov(transformed_data_matrix)
+
+    covar_matrix = np.cov(data_matrix)
 
     return covar_matrix
 
@@ -210,7 +209,7 @@ def CalculateCovariances(data_matrix):
 # If extra_info == True: also returns the p-value from Fisher's method, the scale factor c, and the new degrees of freedom from Brown's Method
 def CombinePValuesEBM(covar_matrix, p_values, extra_info=False):
     m = covar_matrix.shape[0]
-    # print "m", m
+    print ("m", m)
     df_fisher = 2.0 * m
     Expected = 2.0 * m
     cov_sum = 0
@@ -312,7 +311,6 @@ def CalculateCovarianceYang(data_matrix):
             cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])  # Correlate columns
             corr_matrix[i, j] = cor
             biased_corrected_cor = cor * (1 + (1 - cor ** 2 / 2 * (n - 3)))
-            print(corr_matrix)
 
             f_r = PolyFitYang(biased_corrected_cor)
             bias = (c1 / n) * (1 - biased_corrected_cor ** 2) ** 2
@@ -320,7 +318,6 @@ def CalculateCovarianceYang(data_matrix):
             unbiased_delta = f_r - bias
             delta_matrix[i, j] = unbiased_delta
             delta_matrix[j, i] = unbiased_delta
-    print(corr_matrix)
 
     return delta_matrix, corr_matrix
 
@@ -337,7 +334,7 @@ def Bonferronis_correction_g(p_values):
 def effective_number_of_tests_cheverud_nyholt(eigenvalues):
     k = len(eigenvalues)
     sample_variance = np.var(eigenvalues)
-    print(sample_variance)
+    print("var", sample_variance)
     effective_number_of_tests = 1 + (k - 1) * (1 - sample_variance / k)
     return effective_number_of_tests
 
@@ -374,10 +371,10 @@ def effective_number_of_tests_galwey(eigenvalues):
     k = len(eigenvalues)
     lambda_prime = np.maximum(0, eigenvalues)
 
-    # Step 3: Compute sum of squares of λ'_i
+    # Step 3: Compute sum of squares of Î»'_i
     sum_squared_lambda_prime = (np.sum(np.sqrt(lambda_prime))) ** 2
 
-    # Step 4: Divide by the sum of all λ'_i
+    # Step 4: Divide by the sum of all Î»'_i
     effective_number_of_tests = sum_squared_lambda_prime / np.sum(lambda_prime)
 
     return effective_number_of_tests
@@ -419,9 +416,9 @@ def read_from_file_transform(file_path, data_type):
     return SNP_values
 
 
-def read_matrix_from_file(file_path):
+def read_matrix_from_file(input_file_path):
     matrix = []
-    with open(file_path, 'r') as file:
+    with open(input_file_path, 'r') as file:
         for line in file:
             values = line.strip().split()
             row = [float(value) for value in values]
@@ -467,85 +464,102 @@ def combine_pvalues(combine_function, SNP_values, metanalysis_needed, file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process text files and data type.')
-    parser.add_argument('file_path', type=str, help='Path to the input file')
+    parser.add_argument('input_file_path', type=str, help='Path to the input file')
+    parser.add_argument('output_file_path', type=str, help='Path to the output file')
     parser.add_argument('data_type', type=str, choices=['p-values', 'z-scores'], help="Type of data in the file ('p-values' or 'z-scores')")
     parser.add_argument('meta_choice', type=str, choices=['Yes', 'No'], help="Do you want the program to perform meta-analysis? ('Yes' or 'No')")
-    parser.add_argument('correlation_matrix', type=str, choices=['Yes', 'No'], help="Do you have a text file with the correlation matrix of the SNPs? ('Yes' or 'No')")
+    parser.add_argument('correlation_matrix_path', type=str, nargs='?', default=None,
+                        help="Path to the correlation matrix file (optional)")
+    parser.add_argument('methods', type=str, nargs='+', choices=['logit', 'meanp', 'fisher','stouffer','invchi','binomial','binomial', 'cct', 'minp', 'mcm', 'cmc', 'bonferroni', 'ebm', 'kost', 'yang']
+                        , help="Which method(s) would you like to use to combine your p-values(or z-scores)?")
     args = parser.parse_args()
 
-    SNP_values = read_from_file_transform(args.file_path, args.data_type.lower())
+
+    SNP_values = read_from_file_transform(args.input_file_path, args.data_type.lower())
     metanalysis_needed = args.meta_choice.lower() == 'yes'
-    cor_mat_needed = args.correlation_matrix.lower() == 'yes'
+
+    correlation_matrix = None
+    if args.correlation_matrix_path:
+        print(f"Using correlation matrix file: {args.correlation_matrix_path}")
+
+    else:
+        print("No correlation matrix file provided.")
+
+    print(f"File Path: {args.input_file_path}")
+    print(f"Output File Path: {args.output_file_path}")
+    print(f"Data Type: {args.data_type}")
+    print(f"Meta-analysis: {args.meta_choice}")
+    print(f"Correlation Matrix: {args.correlation_matrix_path}")
+    print(f"Methods: {args.methods}")
+
 
     method_functions = {
-        '1': logit,
-        '2': meanp,
-        '3': fisher_method,
-        '4': stouffer,
-        '5': inverse_chi2,
-        '6': binomial_test,
-        '7': cauchy_method,
-        '8': minP,
-        '9': CMC,
-        '10': MCM,
-        '11': HMP,
-        '12': EmpiricalBrownsMethod,
-        '13': KostsMethod,
-        '14': BrownsMethodbyYang,
-        '15': bonferroni_method_with_effective_tests
+        'logit': logit,
+        'meanp': meanp,
+        'fisher': fisher_method,
+        'stouffer': stouffer,
+        'invchi': inverse_chi2,
+        'binomial': binomial_test,
+        'cct': cauchy_method,
+        'minp': minP,
+        'cmc': CMC,
+        'mcm': MCM,
+        'hmp': HMP,
+        'ebm': EmpiricalBrownsMethod,
+        'kost': KostsMethod,
+        'yang': BrownsMethodbyYang,
+        'bonferroni': bonferroni_method_with_effective_tests
     }
+    selected_methods = args.methods
 
     method_names = {
-        '1': "Logitp Method",
-        '2': "Meanp Method",
-        '3': "Fisher's Method",
-        '4': "Stouffer's Method",
-        '5': "Inverse Chi2 Method",
-        '6': "Binomial Test",
-        '7': "Cauchy Method (CCT)",
-        '8': "MinP Method (Tippett's Method)",
-        '9': "CMC (CCT-MinP-CCT)",
-        '10': "MCM (MinP-CCT-MinP)",
-        '11': "Harmonic Mean P-value (HMP)",
-        '12': "Empirical Brown's Method (EBM)",
-        '13': "Empirical Brown's Method (EBM) by Kost",
-        '14': "Brown's Method by Yang",
-        '15': "Bonferroni with effective number of tests"
+        'logit': "Logitp Method",
+        'meanp': "Meanp Method",
+        'fisher': "Fisher's Method",
+        'stouffer': "Stouffer's Method",
+        'invchi': "Inverse Chi2 Method",
+        'binomial': "Binomial Test",
+        'cct': "Cauchy Method (CCT)",
+        'minp': "MinP Method (Tippett's Method)",
+        'cmc': "CMC (CCT-MinP-CCT)",
+        'mcm': "MCM (MinP-CCT-MinP)",
+        'hmp': "Harmonic Mean P-value (HMP)",
+        'ebm': "Empirical Brown's Method (EBM)",
+        'kost': "Empirical Brown's Method (EBM) by Kost",
+        'yang': "Brown's Method by Yang",
+        'bonferroni': "Bonferroni with effective number of tests"
     }
 
     print("\n****** Combining methods for dependent and independent P-values ******\n")
     for key, value in method_names.items():
         print(f"{key}: *** {value} ***")
 
-    methods = input("\nEnter your choices separated by commas (e.g., '1,2,3'): ").split(',')
 
-    with open("output.txt", "w") as file:
-        for method in methods:
+    with open(args.output_file_path, "w") as file:
+        for method in selected_methods:
             if method in method_functions:
                 file.write(f"\nSelected Method: *** {method_names[method]} ***\n")
                 combine_function = method_functions[method]
 
-                if method in ['12', '13', '14', '15']:
+                if method in ['ebm', 'kost', 'yang', 'bonferroni']:
                     values = np.array([values for _, values in SNP_values])
                     print(values)
                     SNP = np.array([values for SNP, _ in SNP_values])
                     g_adjusted = Bonferronis_correction_g(values)
 
-                    if method in ['12', '13', '14']:
+                    if method in ['ebm', 'kost', 'yang']:
 
                         # Get combined values for each SNP
                         combined_values = file.write(str(combine_function(values, extra_info=False)))
 
 
-                    elif method in ['15']:
+                    elif method in ['bonferroni']:
 
-
-                        if cor_mat_needed:
-                            matrix_path = input("\nEnter the path to the .txt file with the correlation matrix for your data(e.g filename.txt): ")
-                            corr_matrix = read_matrix_from_file(matrix_path)
-                            cleaned_corr_matrix = [row for row in corr_matrix if row]
-                        else:
+                        if correlation_matrix is None:
                             corr_matrix = np.corrcoef(values, rowvar=False)
+                        else:
+                            corr_matrix = read_matrix_from_file(args.correlation_matrix_path)
+
 
                         eigenvalues, _ = np.linalg.eig(corr_matrix)
                         print(eigenvalues)
