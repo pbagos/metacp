@@ -6,7 +6,7 @@ program define metacp
     egen `num_vars' = rownonmiss(`varlist')
 	
 
-if "`method'" == "logitp" {
+if "`method'" == "logit" {
 	
 	* Define the numerical value of pi
 	local pi_value = 3.141592653589793
@@ -43,7 +43,7 @@ else if "`method'" == "meanp" {
 	gen _meanp = 1 - normal(`z_value') 
 	di "Combined p-value:", _meanp
 }
-else if "`method'" == "fisherp" {
+else if "`method'" == "fisher" {
 
 
 	foreach var of varlist `varlist' {
@@ -57,7 +57,7 @@ else if "`method'" == "fisherp" {
 	gen _fisher_p = 1 - chi2(2 * `num_vars', -2 * `chi_squared_sum') 
 	di "Combined p-value:", _fisher_p
 }
-else if "`method'" == "stoufferp" {
+else if "`method'" == "stouffer" {
 	 * Define the numerical value of pi
 	local pi_value = 3.141592653589793
 	foreach var of varlist `varlist' {
@@ -71,7 +71,7 @@ else if "`method'" == "stoufferp" {
 	gen _stouffer_p = 1 - normal(`z_sum' / sqrt(`num_vars')) 
 	di "Combined p-value:", _stouffer_p
 }
-else if "`method'" == "invchi2p" {	
+else if "`method'" == "invchi" {	
 	* Loop through each variable in the varlist
 	foreach var of varlist `varlist' {
 		* Calculate the inverse chi-squared statistic for each observation
@@ -88,7 +88,7 @@ else if "`method'" == "invchi2p" {
 	di "Combined p-value:", _inv_chi2_p
 }
 
-else if "`method'" == "binomialp" {	
+else if "`method'" == "binomial" {	
 
 	local alpha 0.05
 	gen _binomial_p = .
@@ -122,7 +122,7 @@ else if "`method'" == "binomialp" {
 	}
 }
 
-else if "`method'" == "cauchyp" {
+else if "`method'" == "cct" {
 	
 	local pi_val = 3.141592653589793
 	local gamma_val = 1
@@ -157,7 +157,7 @@ else if "`method'" == "minp" {
 	di "Combined p-value:", _min_p
 }
 
-else if "`method'" == "MCM" {
+else if "`method'" == "mcm" {
 	
 	gen _MCM_p = 2 * min(_cauchy_p, _min_p, 0.05)
 	* Display combined p-value
@@ -165,7 +165,7 @@ else if "`method'" == "MCM" {
 }	
 *For the CMC method the user should first calculate the '_cauchy_p' and the '_min_p'.
 *The CMC method should be run like this 'metacp __cauchy_p _min_p,method(CMC)'
-else if "`method'" == "CMC" {
+else if "`method'" == "cmc" {
 	local pi_val = 3.141592653589793
 	local gamma_val = 1
 	
@@ -187,7 +187,7 @@ else if "`method'" == "CMC" {
 	di "Combined p-value by CMC(Cauchy-MinP-Cauchy):", _CMC_p
 }	
 
-else if "`method'" == "bonferronip" {
+else if "`method'" == "bonferroni" {
 		egen `min_val' = rowmin(`varlist')
 	
 	 * Calculate combined p-value
@@ -197,7 +197,7 @@ else if "`method'" == "bonferronip" {
 	di "Combined p-value:", _bonferroni_p
 }
 
-else if "`method'" == "bonferronig_p" {
+else if "`method'" == "adbonferroni" {
     * Calculate the correlation matrix for the variables in varlist
     corr `varlist'
     matrix corr_matrix = r(C)
@@ -233,7 +233,7 @@ else if "`method'" == "bonferronig_p" {
     di "Combined p-value:", _bonferronig_p
 }
 
-else if "`method'" == "cheverud_nyholtp" {
+else if "`method'" == "cn" {
     local end_mata end 
 	mkmat `corr_matrix', matrix(correlation_matrix)
 	matrix eigenvalues lambda V = correlation_matrix
@@ -250,7 +250,7 @@ else if "`method'" == "cheverud_nyholtp" {
 	di "CN: " _cheverud_nyholt_p
 }
 
-else if "`method'" == "li_jip" {
+else if "`method'" == "lj" {
 	local end_mata end 
 	mkmat `corr_matrix', matrix(correlation_matrix)
 	matrix eigenvalues lambda V = correlation_matrix
@@ -279,7 +279,7 @@ else if "`method'" == "li_jip" {
 	di "Li_Ji: " _li_ji_p
 }
 
-else if "`method'" == "gaop" {
+else if "`method'" == "gao" {
 
 	mkmat `corr_matrix', matrix(correlation_matrix)
 	matrix eigenvalues lambda V = correlation_matrix
@@ -304,7 +304,7 @@ else if "`method'" == "gaop" {
 	gen _gao_p = min(1, min_val * effective_number_of_tests)
 	di "GAO: " _gao_p
 }
-else if "`method'" == "galweyp" {
+else if "`method'" == "galwey" {
 	 
 
 	mkmat `corr_matrix', matrix(correlation_matrix)
@@ -323,7 +323,7 @@ else if "`method'" == "galweyp" {
 	gen _galwey_p = min(1, min_val * effective_number_of_tests)
 	di "Galwey: " _galwey_p
 }
-else if "`method'" == "EBM" {
+else if "`method'" == "ebm" {
 	corr `varlist', cov
 	matrix covar_matrix = r(C)
 	local m = rowsof(covar_matrix)
@@ -369,7 +369,7 @@ else if "`method'" == "EBM" {
 	di "Brown p-value:", _p_brown
 	
 }	
-else if "`method'" == "KostsMethodEBM" {
+else if "`method'" == "kost" {
 	scalar a1 = 3.263
 	scalar a2 = 0.710
 	scalar a3 = 0.027
@@ -436,7 +436,7 @@ else if "`method'" == "KostsMethodEBM" {
 	gen _p_kost_brown = 1 - chi2(df_brown, -2 * chi_squared_sum_kost_brown)
 	di "Brown p-value:", _p_kost_brown
 }
-else if "`method'" == "BrownbyYang" {
+else if "`method'" == "yang" {
 	scalar c1 = 3.9081 
 	scalar c2 = 0.0313
 	scalar c3 = 0.1022
@@ -565,4 +565,3 @@ void lambdaPrime(matrix lambda)
 		st_matrix("sum_eig", sum_eig)
 }
 end	
-
