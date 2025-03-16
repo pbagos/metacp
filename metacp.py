@@ -11,99 +11,206 @@ from scipy.stats import moyal
 import argparse
 from collections import defaultdict
 
-def logit(p_values):
-    # Convert input to numpy array for numerical operations
-    p_values = np.array(p_values)
-
-    # Ensure that all probabilities are within the valid range (0, 1)
-    p_values = np.clip(p_values, 1e-16, 1 - 1e-16)
-
-    k = len(p_values)
+def logit(values, data_type = "z-scores"):
+    values = np.array(values)
+    k = len(values)
     C = np.sqrt(k * np.pi ** 2 * (5 * k + 2) / (3 * (5 * k + 4)))
-    # Compute the logit transform
-    t_value = -np.sum(np.log((p_values) / (1 - p_values))) / C
     df = 2 * k
-    combined_p = 2 * (1 - t.cdf(np.abs(t_value), df))
+    if data_type == "z-scores":
+        p1, p2 = transform_to_pvalues(values)
 
-    return combined_p
+        t1_value = -np.sum(np.log((p1) / (p2)))
+        combined_p1 = 2 * (1 - t.cdf(np.abs(t1_value / C), df))
+        t2_value = -np.sum(np.log((p2) / (p1)))
+        combined_p2 = 2 * (1 - t.cdf(np.abs(t2_value / C), df))
 
-
-def meanp(p_values):
-    # Convert input to numpy array for numerical operations
-    p_values = np.array(p_values)
-
-    # Ensure that all p-values are within the valid range (0, 1)
-    p_values = np.clip(p_values, 1e-09, 1 - 1e-09)
-    k = len(p_values)
-    # Compute the mean of the p-values
-    z_value = (0.5 - np.mean(p_values)) * math.sqrt(12 * k)
-    combined_p = 1 - norm.cdf(z_value)  # right-side test
-    return combined_p
-
-
-def fisher_method(p_values):
-    # Convert input to numpy array for numerical operations
-    p_values = np.array(p_values)
-
-    # Ensure that all p-values are within the valid range (0, 1)
-    p_values = np.clip(p_values, 1e-16, 1 - 1e-16)
-    # Compute the combined test statistic using Fisher's method
-    chi_squared = -2 * np.sum(np.log(p_values))
-    # Calculate the degrees of freedom
-    df = 2 * len(p_values)
-
-    # Calculate the combined p-value using the chi-squared distribution
-    fisher_p = 1 - chi2.cdf(chi_squared, df)
-
-    return fisher_p
-
-
-def stouffer(p_values, one_tailed=True):
-    # Convert input to numpy array for numerical operations
-    p_values = np.array(p_values)
-
-    # Ensure that all p-values are within the valid range (0, 1)
-    p_values = np.clip(p_values, 1e-16, 1 - 1e-16)
-    if one_tailed:
-        z_scores = norm.ppf(1 - p_values)  # norm.ppf =inverse cumulative distribution function of normal distribution
+        p_final = 2 * min(combined_p1, combined_p2)
     else:
-        z_scores = norm.ppf(1 - p_values / 2)
+        # Ensure that all probabilities are within the valid range (0, 1)
+        p_values = np.clip(values, 1e-16, 1 - 1e-16)
+
+        # Compute the logit transform
+        t_value = -np.sum(np.log((p_values) / (1 - p_values)))
+
+        p_final = 2 * (1 - t.cdf(np.abs(t_value / C), df))
+
+    return p_final
+
+
+def meanp(values, data_type="z-scores"):
+    k = len(values)
+    if data_type == "z-scores":
+        p1, p2 = transform_to_pvalues(values)
+
+        # Compute the mean of the p-values
+        z1_value = (0.5 - np.mean(p1)) * math.sqrt(12 * k)
+        combined_p1 = 1 - norm.cdf(z1_value)
+        z2_value = (0.5 - np.mean(p2)) * math.sqrt(12 * k)
+        combined_p2 = 1 - norm.cdf(z2_value)
+        p_final = 2 * min(combined_p1, combined_p2)
+
+    else:
+
+        p_values = np.array(values)
+
+        # Ensure that all p-values are within the valid range (0, 1)
+        p_values = np.clip(p_values, 1e-09, 1 - 1e-09)
+        # Compute the mean of the p-values
+        z_value = (0.5 - np.mean(p_values)) * math.sqrt(12 * k)
+        p_final = 1 - norm.cdf(z_value)
+
+    return p_final
+
+
+def fisher_method(values, data_type = "z-scores"):
+    df = 2 * len(values)
+    if data_type == "z-scores":
+        p1, p2 = transform_to_pvalues(values)
+
+        chi_squared1 = -2 * np.sum(np.log(p1))
+        combined_p1 = 1 - chi2.cdf(chi_squared1, df)
+        chi_squared2 = -2 * np.sum(np.log(p2))
+        combined_p2 = 1 - chi2.cdf(chi_squared2, df)
+
+        p_final = 2 * min(combined_p1, combined_p2)
+    else:
+        # Convert input to numpy array for numerical operations
+        p_values = np.array(values)
+
+        # Ensure that all p-values are within the valid range (0, 1)
+        p_values = np.clip(p_values, 1e-16, 1 - 1e-16)
+        # Compute the combined test statistic using Fisher's method
+        chi_squared = -2 * np.sum(np.log(p_values))
+
+        # Calculate the combined p-value using the chi-squared distribution
+        p_final = 1 - chi2.cdf(chi_squared, df)
+
+    return p_final
+
+
+def lancaster_method(values, data_matrix, data_type="z-scores", weight_matrix=None):
+    weight_matrix = np.array(weight_matrix, dtype=float)
+    # Compute the degrees of freedom (sum of the weights or sample sizes)
+    df = np.sum(weight_matrix)
+
+    if data_type == "z-scores":
+        values = np.array(values)
+        p1, p2 = transform_to_pvalues(values)
+
+
+
+        # Compute chi-square statistics using the inverse chi-square (quantile) of each p-value
+        chi_statistic1 = np.sum(chi2.ppf(1 - p1, weight_matrix))  # Applying weight for each study
+        chi_statistic2 = np.sum(chi2.ppf(1 - p2, weight_matrix))  # Applying weight for each study
+
+        # Combined p-values using chi-square distribution
+        combined_p1 = 1 - chi2.cdf(chi_statistic1, df)
+        combined_p2 = 1 - chi2.cdf(chi_statistic2, df)
+        p_final = (2 * min(combined_p1, combined_p2))
+
+
+    else:
+        # If the data type is not z-scores, assume we are directly working with p-values
+        p_values = np.array(values)
+
+        # Ensure p-values are within a valid range to avoid numerical issues
+        p_values = np.clip(p_values, 1e-16, 1 - 1e-16)
+
+        # Compute the chi-square statistic by applying the inverse chi-square to each p-value
+        chi_statistic = np.sum(chi2.ppf(1 - p_values, weight_matrix))  # Applying weight for each study
+
+        # Combined p-value using the chi-square distribution
+        p_final = 1 - chi2.cdf(chi_statistic, df)
+
+    return p_final
+
+
+def stouffer(values, data_type="z-scores"):
+    # Convert input to numpy array for numerical operations
+    values = np.array(values)
+
+    if data_type == "p-values":
+        z_scores = norm.ppf(1 - values)  # norm.ppf =inverse cumulative distribution function of normal distribution
+    else:
+        z_scores = values
 
     # z_scores = norm.ppf(1 - p_values) # norm.ppf =inverse cumulative distribution function of normal distribution
-    combined_z = np.sum(z_scores / math.sqrt(len(p_values)))
+    combined_z = np.sum(z_scores / math.sqrt(len(values)))
     combined_p = 1 - norm.cdf(combined_z)  # norm.cdf = cumulative distribution function of normal distribution
 
     return combined_p
 
+def weighted_stouffer(values, data_matrix, data_type="z-scores", weight_matrix = None):
+    values = np.array(values)
 
-def inverse_chi2(p_values):
-    # Convert input to numpy array for numerical operations
-    p_values = np.array(p_values)
+    weight_matrix = np.array(weight_matrix, dtype=float)
 
-    # Ensure that all p-values are within the valid range (0, 1)
-    p_values = np.clip(p_values, 1e-16, 1 - 1e-16)
+    if data_type == "p-values":
+        z_scores = norm.ppf(1 - values)  # norm.ppf =inverse cumulative distribution function of normal distribution
+    else:
+        z_scores = values
 
-    df = len(p_values)
-
-    chi_squared = np.sum(chi2.ppf((1 - p_values), 1))  # ppf = inverse of cdf
-    inv_chi2_combined_p = 1 - chi2.cdf(chi_squared, df)  # chi2.cdf = cumulative distribution function of chi2
-
-    return inv_chi2_combined_p
-
-
-def binomial_test(p_values):
-    p_values = np.array(p_values)
-
-    k = len(p_values)
-    alpha = 0.05
-    # Count the number of significant p-values
-    r = sum((p < alpha) for p in p_values)
-    # Calculate the binomial probability of observing at most num_successes successes
-    combined_p = 0
-    for x in range(r, k + 1):
-        combined_p += math.factorial(k) / (math.factorial(x) * math.factorial(k - x)) * (alpha ** x) * ((1 - alpha) ** (k - x))
+    # z_scores = norm.ppf(1 - p_values) # norm.ppf =inverse cumulative distribution function of normal distribution
+    combined_z = np.sum(weight_matrix * z_scores / math.sqrt(np.sum(weight_matrix**2)))
+    combined_p = 1 - norm.cdf(combined_z)  # norm.cdf = cumulative distribution function of normal distribution
 
     return combined_p
+
+def inverse_chi2(values, data_type="z-scores"):
+    values = np.array(values)
+    df = len(values)
+    if data_type == "z-scores":
+        p1, p2 = transform_to_pvalues(values)
+
+        chi_squared1 = np.sum(chi2.ppf((1 - p1), 1))  # ppf = inverse of cdf
+        combined_p1 = 1 - chi2.cdf(chi_squared1, df)  # chi2.cdf = cumulative distribution function of chi2
+        chi_squared2 = np.sum(chi2.ppf((1 - p2), 1))  # ppf = inverse of cdf
+        combined_p2 = 1 - chi2.cdf(chi_squared2, df)
+        p_final = 2 * min(combined_p1, combined_p2)
+    else:
+        # Convert input to numpy array for numerical operations
+        # Ensure that all p-values are within the valid range (0, 1)
+        p_values = np.clip(values, 1e-16, 1 - 1e-16)
+
+        chi_squared = np.sum(chi2.ppf((1 - p_values), 1))  # ppf = inverse of cdf
+        p_final = 1 - chi2.cdf(chi_squared, df)  # chi2.cdf = cumulative distribution function of chi2
+
+    return p_final
+
+
+def binomial_test(values, data_type="z-scores"):
+    values = np.array(values)
+    k = len(values)
+    alpha = 0.05
+    if data_type == "z-scores":
+        p1, p2 = transform_to_pvalues(values)
+        # Count the number of significant p-values
+        r1 = sum((p1 < alpha) for p in p1)
+        # Calculate the binomial probability of observing at most num_successes successes
+        combined_p1 = 0
+        for x1 in range(r1, k + 1):
+            combined_p1 += math.factorial(k) / (math.factorial(x1) * math.factorial(k - x1)) * (alpha ** x1) * (
+                        (1 - alpha) ** (k - x1))
+        r2 = sum((p2 < alpha) for p in p2)
+        # Calculate the binomial probability of observing at most num_successes successes
+        combined_p2 = 0
+        for x2 in range(r2, k + 1):
+            combined_p2 += math.factorial(k) / (math.factorial(x2) * math.factorial(k - x2)) * (alpha ** x2) * (
+                (1 - alpha) ** (k - x2))
+
+        p_final = 2 * min(combined_p1, combined_p2)
+
+    else:
+        p_values = np.array(values)
+
+        # Count the number of significant p-values
+        r = sum((p < alpha) for p in p_values)
+        # Calculate the binomial probability of observing at most num_successes successes
+        p_final = 0
+        for x in range(r, k + 1):
+            p_final += math.factorial(k) / (math.factorial(x) * math.factorial(k - x)) * (alpha ** x) * ((1 - alpha) ** (k - x))
+
+    return p_final
 
 
 def cauchy_cdf(x, x0=0, gamma=1):
@@ -112,223 +219,295 @@ def cauchy_cdf(x, x0=0, gamma=1):
     return 0.5 + (np.arctan((x - x0) / gamma) / np.pi)
 
 
-def cauchy_method(p_values):
-    # Convert input to numpy array for numerical operations
-    p_values = np.array(p_values)
+def cauchy_method(values, data_type="z-scores"):
+    k = len(values)
+    values = np.array(values)
 
-    # Ensure that all p-values are within the valid range (0, 1)
-    p_values = np.clip(p_values, 1e-15, 1 - 1e-15)
+    if data_type == "z-scores":
+        # Transform to p-values
+        p1, p2 = transform_to_pvalues(values)
 
-    k = len(p_values)
+        T1 = np.tan((0.5 - p1) * np.pi)
+        t1 = np.sum(T1) / k
+        # Calculate the combined p-value using the Cauchy distribution
+        combined_p1 = 1 - cauchy_cdf(t1)
 
-    T = np.tan((0.5 - p_values) * np.pi)
+        T2 = np.tan((0.5 - p2) * np.pi)
+        t2 = np.sum(T2) / k
+        # Calculate the combined p-value using the Cauchy distribution
+        combined_p2 = 1 - cauchy_cdf(t2)
 
+        p_final = 2 * min(combined_p1, combined_p2)
+    else:
+
+        # Ensure that all p-values are within the valid range (0, 1)
+        p_values = np.clip(values, 1e-15, 1 - 1e-15)
+
+        T = np.tan((0.5 - p_values) * np.pi)
+        t = np.sum(T) / k
+        # Calculate the combined p-value using the Cauchy distribution
+        p_final = 1 - cauchy_cdf(t)
+
+    return p_final
+
+
+def minP(values, data_type="z-scores"):
+    values = np.array(values)
+    k = len(values)
+
+    if data_type == "z-scores":
+
+        p1, p2 = transform_to_pvalues(values)
+
+        combined_p1 = 1 - (1 - np.min(p1)) ** k
+        combined_p2 = 1 - (1 - np.min(p2)) ** k
+
+        p_final = 2 * min(combined_p1, combined_p2)
+    else:
+        # Ensure that all p-values are within the valid range (0, 1)
+        p_values = np.clip(values, 1e-15, 1 - 1e-15)
+
+        # Calculate the combined p-value as the minimum p-value
+        p_final = 1 - (1 - np.min(p_values)) ** k
+
+    return p_final
+
+
+
+def CMC(values, data_type="z-scores"):
+    # Compute individual p-values
+    p_value_cauchy = cauchy_method(values, data_type="z-scores")
+    p_value_minp = minP(values, data_type="z-scores")
+
+    # Combine p_value_cauchy and p_value_minp into one array
+    combined_values = np.array([p_value_cauchy, p_value_minp])
+
+    # Apply the Cauchy method logic directly to the combined array
+    k = len(combined_values)
+    combined_values = np.clip(combined_values, 1e-15, 1 - 1e-15)  # Ensure p-values are in range [0, 1]
+
+    # Apply the Cauchy transformation
+    T = np.tan((0.5 - combined_values) * np.pi)
     t = np.sum(T) / k
+
     # Calculate the combined p-value using the Cauchy distribution
     combined_p = 1 - cauchy_cdf(t)
 
     return combined_p
 
 
-def minP(p_values):
-    # Convert input to numpy array for numerical operations
-    p_values = np.array(p_values)
-
-    # Ensure that all p-values are within the valid range (0, 1)
-    p_values = np.clip(p_values, 1e-15, 1 - 1e-15)
-
-    k = len(p_values)
-
-    # Calculate the combined p-value as the minimum p-value
-    combined_p = 1 - (1 - np.min(p_values)) ** k
-
-    return combined_p
-
-
-def CMC(p_values):
-    p_value_cauchy = cauchy_method(p_values)
-    p_value_minp = minP(p_values)
-    combined_p = cauchy_method((p_value_cauchy, p_value_minp))  # pCMC = CCT{pCCT , pMinP}
-    return combined_p
-
-
-def MCM(p_values):
-    p_value_cauchy = cauchy_method(p_values)
-    p_value_minp = minP(p_values)
+def MCM(values, data_type="z-scores"):
+    p_value_cauchy = cauchy_method(values)
+    p_value_minp = minP(values)
     combined_p = 2 * min(p_value_cauchy, p_value_minp, 0.5)  # pMCM = 2 min{pCCT , pMinP, 0.5}
 
     return combined_p
 
 
-def HMP(p_values):
-    p_values = np.array(p_values)
-    L = len(p_values)
-    harmonic_mean = L / np.sum(1 / p_values)
-    combined_p = moyal.cdf(-2 * np.log(harmonic_mean), 1, L)
-    return combined_p
+def HMP(values, data_type="z-scores"):
+    values = np.array(values)
+    k = len(values)
 
+    if data_type == "z-scores":
+        p1, p2 = transform_to_pvalues(values)
 
-def EmpiricalBrownsMethod(data_matrix, extra_info=False):
-    covar_matrix = CalculateCovariances(data_matrix)
-    return CombinePValuesEBM(covar_matrix, data_matrix, extra_info)
+        combined_p1 = k / np.sum(1 / p1)
+        combined_p2 = k / np.sum(1 / p2)
 
-
-def KostsMethod(data_matrix, extra_info=False):
-    covar_matrix, _ = CalculateKostCovarianceEBM(data_matrix)
-    return CombinePValuesEBM(covar_matrix, data_matrix, extra_info)
-
-
-def BrownsMethodbyYang(data_matrix, extra_info=False):
-    delta_matrix, _ = CalculateCovarianceYang(data_matrix)
-    return CombinePValuesYang(delta_matrix, data_matrix, extra_info)
-
-
-# Input: raw data vector (of one variable) with no missing samples. May be a list or an array.
-# Output Transformed data vector w.
-def TransformData(data_vector):
-    m = np.mean(data_vector)
-    sd = np.std(data_vector)
-    s = [(d - m) / sd for d in data_vector]
-    W = lambda x: -2 * np.log(ECDF(s)(x))
-    return np.array([W(x) for x in s])
-
-
-# Input: An m x n data matrix with each of m rows representing a variable and each of n columns representing a sample.
-# Should be of type numpy.array.
-# Note: Method does not deal with missing values within the data.
-# Output: An m x m matrix of pairwise covariances between transformed raw data vectors
-def CalculateCovariances(data_matrix):
-
-    covar_matrix = np.cov(data_matrix)
-
-    return covar_matrix
-
-
-# Input: A m x m numpy array of covariances between transformed data vectors and a vector of m p-values to combine.
-# Output: A combined P-value.
-# If extra_info == True: also returns the p-value from Fisher's method, the scale factor c, and the new degrees of freedom from Brown's Method
-def CombinePValuesEBM(covar_matrix, p_values, extra_info=False):
-    m = covar_matrix.shape[0]
-    print ("m", m)
-    df_fisher = 2.0 * m
-    Expected = 2.0 * m
-    cov_sum = 0
-    for i in range(m):
-        for j in range(i + 1, m):
-            cov_sum += covar_matrix[i, j]
-
-    print("cov sum", cov_sum)
-    Var = 4.0 * m + 2 * cov_sum
-    c = Var / (2.0 * Expected)
-    print(c)
-    df_brown = 2.0 * Expected ** 2 / Var
-    if df_brown > df_fisher:
-        df_brown = df_fisher
-        c = 1.0
-
-    x = 2.0 * sum([-np.log(np.clip(p, 1e-15, 1 - 1e-15)) for p in p_values])
-    # print "x", x
-    p_brown = chi2_cdf(df_brown, 1.0 * x / c)
-    p_fisher = chi2_cdf(df_fisher, 1.0 * x)
-
-    if extra_info:
-        return p_brown, p_fisher, c, df_brown
+        p_final = 2 * min(combined_p1, combined_p2)
     else:
-        return p_brown
+        p_final = k / np.sum(1 / p_values)
+
+    return p_final
 
 
-def CombinePValuesYang(delta_matrix, p_values, extra_info=False):
-    m = int(delta_matrix.shape[0])
-    mean = 2.0 * m
-    df_fisher = 2.0 * m
-    delta_sum = 0
-    for i in range(m):
-        for j in range(i + 1, m):
-            delta_sum += delta_matrix[i, j]
+def EmpiricalBrownsMethod(values, data_matrix, data_type="z-scores"):
+    values = np.array(values)
+    n = data_matrix.shape[1]
+    df_fisher = 2.0 * n
+    Expected = 2.0 * n
 
-    Var = 4.0 * m + delta_sum
-    v = 2 * (mean ** 2 / Var)
-    gamma_value = Var / mean
-    T = 2.0 * sum([-np.log(np.clip(p, 1e-15, 1 - 1e-15)) for p in p_values])
-    p_fisher = chi2_cdf(df_fisher, 1.0 * T)
-    p_yang = 1 - gamma.cdf(T, v / 2, scale=2 * gamma_value)
+    if data_type == "z-scores":
+        p1, p2 = transform_to_pvalues(values)
+        print("p1",p1)
+        print("p2",p2)
 
-    if extra_info:
-        return p_yang, p_fisher
+        covar_matrix1 = np.cov(p1)
+        covar_matrix2 = np.cov(p2)
+
+        cov_sum1 = np.sum(covar_matrix1)
+        cov_sum2 = np.sum(covar_matrix2)
+
+        Var1 = 4.0 * n + 2 * cov_sum1
+        Var2 = 4.0 * n + 2 * cov_sum2
+
+        c1 = Var1 / (2.0 * Expected)
+        df_brown1 = (2.0 * Expected ** 2) / Var1
+        df_brown1 = min(df_brown1, df_fisher)
+        c1 = 1.0 if df_brown1 == df_fisher else c1
+
+        c2 = Var2 / (2.0 * Expected)
+        df_brown2 = (2.0 * Expected ** 2) / Var2
+        df_brown2 = min(df_brown2, df_fisher)
+        c2 = 1.0 if df_brown2 == df_fisher else c2
+
+        chi_squared1 = 2.0 * np.sum(-np.log(np.clip(p1, 1e-15, 1 - 1e-15)))
+        combined_p1 = 1 - chi2.cdf(chi_squared1 / c1, df_brown1)
+        print("combined_p1", combined_p1)
+
+        chi_squared2 = 2.0 * np.sum(-np.log(np.clip(p2, 1e-15, 1 - 1e-15)))
+        combined_p2 = 1 - chi2.cdf(chi_squared2 / c2, df_brown2)
+        print("combined_p2", combined_p2)
+        p_brown_final = 2 * min(combined_p1, combined_p2)
+
     else:
-        return p_yang
+        covar_matrix = np.cov(data_matrix)
+
+        cov_sum = np.sum(covar_matrix)
+        Var = 4.0 * n + 2 * cov_sum
+        c = Var / (2.0 * Expected)
+        df_brown = (2.0 * Expected ** 2) / Var
+        df_brown = min(df_brown, df_fisher)
+        c = 1.0 if df_brown == df_fisher else c
+
+        x = 2.0 * np.sum(-np.log(np.clip(values, 1e-15, 1 - 1e-15)))
+        p_brown_final = chi2.cdf(x / c, df_brown)
+
+    return p_brown_final
 
 
-# Input: An m x n data matrix with each of m rows representing a variable and each of n columns representing a sample. Should be of type numpy.array
-#       A vector of m P-values to combine. May be a list or of type numpy.array.
-# Output: A combined P-value using Kost's Method.
-#        If extra_info == True: also returns the p-value from Fisher's method, the scale factor c, and the new degrees of freedom from Brown's Method
-
-def KostsMethoDYang(data_matrix):
-    delta_matrix = CalculateCovarianceYang(data_matrix)
-    return CombinePValuesYang(delta_matrix, data_matrix)
-
-
-# Input correlation between two n x n data vectors.
-# Output: Kost's approximation of the covariance between the -log cumulative
-# distributions. This is calculated with a cubic polynomial fit.
-def KostPolyFitEBM(cor):
-    a1, a2, a3 = 3.263, 0.710, .027  # Kost cubic coeficients
-    return a1 * cor + a2 * cor ** 2 + a3 * cor ** 3
-
-
-def PolyFitYang(cor):
-    c1, c2, c3, c4, c5 = 3.9081, 0.0313, 0.1022, -0.1378, 0.0941
-    return c1 * cor ** 2 + c2 * cor ** 4 + c3 * cor ** 6 + c4 * cor ** 8 + c5 * cor ** 10
-
-
-# Input: An m x n data matrix with each of m rows representing a variable and each of n columns representing a sample. Should be of type numpy.array.
-# Note: Method does not deal with missing values within the data.
-# Output: An m x m matrix of pairwise covariances between the data vectors calculated using Kost's polynomial fit and numpy's pearson correlation function.
-def CalculateKostCovarianceEBM(data_matrix):
-    n = data_matrix.shape[1]  # Number of columns
+def KostsMethod(values, data_matrix, data_type="z-scores"):
+    n = len(values)
     covar_matrix = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])
+            print(f"Correlation between {i} and {j}: {cor}")
+            covar = 3.263 * cor + 0.710 * cor ** 2 + 0.027 * cor ** 3
+            covar_matrix[i, j] = covar_matrix[j, i] = covar
+    return EmpiricalBrownsMethod(covar_matrix,data_matrix, data_type)
+
+
+def BrownsMethodbyYang(values, data_matrix, data_type="z-scores"):
+    c1 = 3.9081
+    values = np.array(values)
+    n = data_matrix.shape[1]  # Number of columns (SNPs or variables)
+
+
+    if data_type == "z-scores":
+        p_values = 2 * (1 - norm.cdf(abs(values)))
+    else:
+        p_values = values
+
+    delta_matrix = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            cor, _ = pearsonr(data_matrix[:,i], data_matrix[:,j])
+            print(f"Correlation between {i} and {j}: {cor}")
+
+            biased_corrected_cor = cor * (1 + (1 - cor ** 2 / 2 * (n - 3)))
+            print(f"Biased corrected correlation: {biased_corrected_cor}")
+
+            f_r = (3.9081 * biased_corrected_cor ** 2 + 0.0313 * biased_corrected_cor ** 4 +
+                   0.1022 * biased_corrected_cor ** 6 - 0.1378 * biased_corrected_cor ** 8 +
+                   0.0941 * biased_corrected_cor ** 10)
+            bias = (c1 / n) * (1 - biased_corrected_cor ** 2) ** 2
+            print(f"f_r: {f_r}, bias: {bias}")
+
+            delta_matrix[i, j] = delta_matrix[j, i] = f_r - bias
+
+    mean, df_fisher = 2.0 * n, 2.0 * n
+    delta_sum = np.sum(delta_matrix)
+    print("delta sum =", delta_sum)
+    Var = 4.0 * n + delta_sum
+    v_gamma = 2 * (mean ** 2 / Var)
+    gamma_value = Var / mean
+
+    T = 2.0 * np.sum(-np.log(np.clip(p_values, 1e-15, 1 - 1e-15)))
+
+    p_yang_final = 1 - gamma.cdf(T, v_gamma / 2, scale=2 * gamma_value)
+
+    return p_yang_final
+
+def weighted_correlated_Stouffer(values, data_matrix, data_type="z-scores", weight_matrix=None):
+    data_matrix = np.array(data, dtype=float)
+    print(f"Input type of values: {type(data_matrix)}")  # Debugging line
+    print(f"Input values: {data}")  # Debugging line
+    k = data_matrix.shape[1]
+    if weight_matrix is None:
+        print("DEBUG: No weight matrix provided, using default weights.")
+        weight_matrix = np.ones(len(values))  # Default to equal weights
+
+    weight_matrix = np.array(weight_matrix, dtype=float)  # Convert to NumPy array
+    correlation_matrix = np.eye(k)  # Initialize with identity matrix (diagonal = 1)
+    for i in range(k):
+        for j in range(i + 1, k):
+            cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])
+            correlation_matrix[i, j] = cor
+            correlation_matrix[j, i] = cor  # Symmetric matrix
+            print(f"Correlation between {i} and {j}: {cor}")
+
+    # Convert p-values to z-scores if needed
+    if data_type == "p-values":
+        z_scores = norm.ppf(1 - values)
+    else:
+        z_scores = values
+
+    # Compute weighted sum of z-scores
+    weighted_z = np.sum(weight_matrix * z_scores)
+
+    # Compute weighted variance
+    weighted_variance = np.sum(weight_matrix[:, None] * weight_matrix[None, :] * correlation_matrix)
+    weighted_std_dev = np.sqrt(weighted_variance)
+
+    # Compute combined z-score and p-value
+    combined_z = weighted_z / weighted_std_dev
+    combined_p_value = 1 - norm.cdf(combined_z)
+
+    return combined_p_value
+
+def correlated_Stouffer(values, data_matrix, data_type="zscores"):
+    data_matrix = np.array(data, dtype=float)
+    values = np.array(values)
+    k = data_matrix.shape[1]  # Number of tests (columns)
+
+    if data_type == "p-values":
+        z_scores = norm.ppf(1 - values)
+    else:
+        z_scores = values
+
+    cor_sum = 0
+    for i in range(k):
+        for j in range(i + 1, k):
+            cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])  # Correlation between columns (tests)
+            print(f"Correlation between {i} and {j}: {cor}")
+            cor_sum += cor
+    total_variance = k + 2 * cor_sum
+
+    # Compute combined test statistic
+    combined_z = np.sum(z_scores) / np.sqrt(total_variance)
+
+    # Compute combined p-value
+    combined_p_value = 1 - norm.cdf(combined_z)
+
+    return combined_p_value
+
+
+
+
+
+
+def Bonferronis_correction_g(values):
+    g = len(values)
+    n = values.shape[1]  # Number of columns
     max_cor = -np.inf
     for i in range(n):
         for j in range(i + 1, n):
-            cor, p_val = pearsonr(data_matrix[:, i], data_matrix[:, j])  # Correlate columns
-            covar = KostPolyFitEBM(cor)
-            covar_matrix[i, j] = covar
-            covar_matrix[j, i] = covar
-
+            cor, _ = pearsonr(values[:, i], values[:, j])  # Correlate columns
             max_cor = max(max_cor, cor)
-
-    return covar_matrix, max_cor
-
-
-def CalculateCovarianceYang(data_matrix):
-    c1 = 3.9081
-    n = data_matrix.shape[1]  # Number of columns
-    delta_matrix = np.zeros((n, n))
-    corr_matrix = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i + 1, n):
-            cor, _ = pearsonr(data_matrix[:, i], data_matrix[:, j])  # Correlate columns
-            corr_matrix[i, j] = cor
-            biased_corrected_cor = cor * (1 + (1 - cor ** 2 / 2 * (n - 3)))
-
-            f_r = PolyFitYang(biased_corrected_cor)
-            bias = (c1 / n) * (1 - biased_corrected_cor ** 2) ** 2
-
-            unbiased_delta = f_r - bias
-            delta_matrix[i, j] = unbiased_delta
-            delta_matrix[j, i] = unbiased_delta
-
-    return delta_matrix, corr_matrix
-
-
-def Bonferronis_correction_g(p_values):
-
-    g = len(p_values)
-    _, ICC = CalculateKostCovarianceEBM(p_values)
+    ICC = max_cor
     print(ICC)
     g_adjusted = (g + 1) - (1 + (g - 1) * ICC)
-
     return g_adjusted
 
 def effective_number_of_tests_cheverud_nyholt(eigenvalues):
@@ -380,51 +559,51 @@ def effective_number_of_tests_galwey(eigenvalues):
     return effective_number_of_tests
 
 
-def bonferroni_method_with_effective_tests(p_values, effective_number_of_tests):
-    p_values = np.array(p_values)
+def bonferroni_method_with_effective_tests(values, effective_number_of_tests, data_type="z-scores"):
+    values = np.array(values)
 
-    # Ensure that all p-values are within the valid range (0, 1)
-    min_p_value = min(p_values)
-    combined_p = min(1, min_p_value * effective_number_of_tests)
+    if data_type == "z-scores":
+        p1, p2 = transform_to_pvalues(values)
+        min_p_value1 = np.min(p1)
+        min_p_value2 = np.min(p2)
 
-    return combined_p
+        combined_p1 = min(1, min_p_value1 * effective_number_of_tests)
+        combined_p2 = min(1, min_p_value2 * effective_number_of_tests)
+
+        p_final = 2 * min(combined_p1, combined_p2)
+    else:
+        p_values = np.array(values)
+        min_p_value = np.min(p_values)
+        p_final = min(1, min_p_value * effective_number_of_tests)
+
+    return p_final
 
 
 def default():
     print("Invalid choice")
 
 def transform_to_pvalues(z_scores):
-    # Transform z-scores to two-sided p-values
-    p_values = [2 * (1 - norm.cdf(abs(z))) for z in z_scores]
-    return p_values
+    # Convert each z-score to p-values for both positive and negative directions
+    p1 = np.where(z_scores > 0, 1 - norm.cdf(z_scores), 1)  # p1 for positive direction
+    p2 = np.where(z_scores < 0, norm.cdf(z_scores), 1)  # p2 for negative direction
+    return p1, p2
 
-
-def read_from_file_transform(file_path, data_type):
+def read_from_file(file_path):
     SNP_values = []
 
     with open(file_path, 'r') as file:
-        content = file.readlines()
-
-    for line in content:
-        elements = line.strip().split()
-        SNP, values = elements[0], list(map(float, elements[1:]))
-        if data_type == 'z-scores':
-            values = transform_to_pvalues(values)
-        SNP_values.append((SNP, values))
-
+        for line in file:
+            elements = line.strip().split()
+            if not elements:  # Skip empty lines
+                continue
+            SNP, values = elements[0], list(map(float, elements[1:]))
+            SNP_values.append((SNP, values))
 
     return SNP_values
 
-
 def read_matrix_from_file(input_file_path):
-    matrix = []
     with open(input_file_path, 'r') as file:
-        for line in file:
-            values = line.strip().split()
-            row = [float(value) for value in values]
-            matrix.append(row)
-    return matrix
-
+        return np.array([[float(value) for value in line.strip().split()] for line in file])
 
 
 def combine_pvalues(combine_function, SNP_values, metanalysis_needed, file):
@@ -447,7 +626,7 @@ def combine_pvalues(combine_function, SNP_values, metanalysis_needed, file):
 
         for p_value in p_values:
             print(f"Combining p-values for SNP {p_value['SNP']}: {p_value['values']}")  # Debug print
-            comb_p = combine_function(p_value['values'])
+            comb_p = combine_function(p_value['values'], args.data_type)
             file.write(f"Combined p-values for SNP {p_value['SNP']}: {comb_p}\n")
     else:
         for SNP, values in SNP_values:
@@ -455,11 +634,13 @@ def combine_pvalues(combine_function, SNP_values, metanalysis_needed, file):
             p_values.append({'SNP': SNP, 'values': values})
 
         for p_value in p_values:
-            print(f"Combining p-values for SNP {p_value['SNP']}: {p_value['values']}")  # Debug print
-            comb_p = combine_function(np.array(p_value['values']))
+            print(f"Combining p-values for SNP {p_value['SNP']}: {p_value['values']}")
+            comb_p = combine_function(np.array(p_value['values']), args.data_type)
             file.write(f"Combined p-values for SNP {p_value['SNP']}: {comb_p}\n")
 
+
     return p_values
+
 
 
 if __name__ == "__main__":
@@ -470,12 +651,15 @@ if __name__ == "__main__":
     parser.add_argument('meta_choice', type=str, choices=['Yes', 'No'], help="Do you want the program to perform meta-analysis? ('Yes' or 'No')")
     parser.add_argument('correlation_matrix_path', type=str, nargs='?', default=None,
                         help="Path to the correlation matrix file (optional)")
-    parser.add_argument('methods', type=str, nargs='+', choices=['logit', 'meanp', 'fisher','stouffer','invchi','binomial','binomial', 'cct', 'minp', 'mcm', 'cmc', 'bonferroni', 'ebm', 'kost', 'yang']
+    parser.add_argument('weights_matrix_path', type=str, nargs='?', default=None,
+                        help="Path to the correlation matrix file (optional)")
+    parser.add_argument('methods', type=str, nargs='+', choices=['logit', 'meanp', 'fisher','lancaster','stouffer','wstouffer','invchi','binomial', 'cct', 'minp', 'mcm', 'cmc', 'bonferroni', 'ebm', 'kost', 'yang','corstouffer','wcorstouffer']
                         , help="Which method(s) would you like to use to combine your p-values(or z-scores)?")
     args = parser.parse_args()
 
 
-    SNP_values = read_from_file_transform(args.input_file_path, args.data_type.lower())
+    SNP_values = read_from_file(args.input_file_path)
+
     metanalysis_needed = args.meta_choice.lower() == 'yes'
 
     correlation_matrix = None
@@ -485,11 +669,21 @@ if __name__ == "__main__":
     else:
         print("No correlation matrix file provided.")
 
+    weights_matrix = None
+    if 'wcorstouffer' in args.methods or 'wstouffer' in args.methods:
+        if args.weights_matrix_path:
+            print(f"Using weights matrix from: {args.weights_matrix_path}")
+            weights_matrix = read_matrix_from_file(args.weights_matrix_path)  # Load user-provided matrix
+        else:
+            print("ERROR: Weights matrix is required for 'wcorstouffer' but not provided.")
+
+
     print(f"File Path: {args.input_file_path}")
     print(f"Output File Path: {args.output_file_path}")
     print(f"Data Type: {args.data_type}")
     print(f"Meta-analysis: {args.meta_choice}")
     print(f"Correlation Matrix: {args.correlation_matrix_path}")
+    print(f"Weight Matrix: {args.weights_matrix_path}")
     print(f"Methods: {args.methods}")
 
 
@@ -497,7 +691,9 @@ if __name__ == "__main__":
         'logit': logit,
         'meanp': meanp,
         'fisher': fisher_method,
+        'lancaster': lancaster_method,
         'stouffer': stouffer,
+        'wstouffer': weighted_stouffer,
         'invchi': inverse_chi2,
         'binomial': binomial_test,
         'cct': cauchy_method,
@@ -508,7 +704,9 @@ if __name__ == "__main__":
         'ebm': EmpiricalBrownsMethod,
         'kost': KostsMethod,
         'yang': BrownsMethodbyYang,
-        'bonferroni': bonferroni_method_with_effective_tests
+        'bonferroni': bonferroni_method_with_effective_tests,
+        'corstouffer': correlated_Stouffer,
+        'wcorstouffer': weighted_correlated_Stouffer
     }
     selected_methods = args.methods
 
@@ -516,7 +714,9 @@ if __name__ == "__main__":
         'logit': "Logitp Method",
         'meanp': "Meanp Method",
         'fisher': "Fisher's Method",
-        'stouffer': "Stouffer's Method",
+        'lancaster': "Lancaster's Method",
+         'stouffer': "Stouffer's Method",
+        'wstouffer': "Weighted Stouffer's Method",
         'invchi': "Inverse Chi2 Method",
         'binomial': "Binomial Test",
         'cct': "Cauchy Method (CCT)",
@@ -527,7 +727,10 @@ if __name__ == "__main__":
         'ebm': "Empirical Brown's Method (EBM)",
         'kost': "Empirical Brown's Method (EBM) by Kost",
         'yang': "Brown's Method by Yang",
-        'bonferroni': "Bonferroni with effective number of tests"
+        'bonferroni': "Bonferroni with effective number of tests",
+        'corstouffer': "Stouffer's Method for dependent tests",
+        'wcorstouffer': "Weighted Stouffer's Method for dependent tests"
+
     }
 
     print("\n****** Combining methods for dependent and independent P-values ******\n")
@@ -541,22 +744,30 @@ if __name__ == "__main__":
                 file.write(f"\nSelected Method: *** {method_names[method]} ***\n")
                 combine_function = method_functions[method]
 
-                if method in ['ebm', 'kost', 'yang', 'bonferroni']:
-                    values = np.array([values for _, values in SNP_values])
-                    print(values)
-                    SNP = np.array([values for SNP, _ in SNP_values])
-                    g_adjusted = Bonferronis_correction_g(values)
 
-                    if method in ['ebm', 'kost', 'yang']:
+                if method in ['ebm','kost', 'yang','bonferroni', 'corstoufer', 'wcortouffer', 'lancaster', 'wstouffer']:
+                    data = np.array([values for _, values in SNP_values])
+                    SNP = np.array([SNP for SNP, _ in SNP_values])
+                    g_adjusted = Bonferronis_correction_g(data)
 
+                    if method in ['ebm', 'kost', 'yang', 'corstouffer']:
                         # Get combined values for each SNP
-                        combined_values = file.write(str(combine_function(values, extra_info=False)))
+                        for SNP, values in SNP_values:
+                            combined_p = combine_function(values, data, args.data_type)
+                            file.write(f"Combined p-value for {SNP}: {combined_p}\n")
+
+                    elif method in ['lancaster', 'wstouffer', 'wcorstouffer']:
+
+                        print(f"DEBUG: Loaded weight matrix from file: {weights_matrix}")
+                        for SNP, values in SNP_values:
+                            combined_p = combine_function(values, data, args.data_type, weights_matrix)
+                            file.write(f"Combined p-value for {SNP}: {combined_p}\n")
 
 
                     elif method in ['bonferroni']:
 
                         if correlation_matrix is None:
-                            corr_matrix = np.corrcoef(values, rowvar=False)
+                            corr_matrix = np.corrcoef(data, rowvar=False)
                         else:
                             corr_matrix = read_matrix_from_file(args.correlation_matrix_path)
 
@@ -573,38 +784,34 @@ if __name__ == "__main__":
 
 
                         file.write(f"Effective Number of Tests (Cheverud-Nyholt): {cn}\n")
-
-
-                        for SNP, values in SNP_values:
-                            print(values)
-
-                            combined_p_value_cn = combine_function(values, cn)
+                        for SNP, data in SNP_values:
+                            combined_p_value_cn = combine_function(data, cn, args.data_type)
                             file.write(f"Combined p-value for {SNP}: {combined_p_value_cn}\n")
 
                         file.write(f"Effective Number of Tests (Gao): {gao}\n")
-                        for SNP, values in SNP_values:
-                            combined_p_value_gao = combine_function(values, gao)
+                        for SNP, data in SNP_values:
+                            combined_p_value_gao = combine_function(data, gao, args.data_type)
                             file.write(f"Combined p-value for {SNP}: {combined_p_value_gao}\n")
 
                         file.write(f"Effective Number of Tests (Galwey): {gal}\n")
-                        for SNP, values in SNP_values:
-                            combined_p_value_gal = combine_function(values, gal)
+                        for SNP, data in SNP_values:
+                            combined_p_value_gal = combine_function(data, gal, args.data_type)
                             file.write(f"Combined p-value for {SNP}: {combined_p_value_gal}\n")
 
                         file.write(f"Effective Number of Tests (Li-Ji): {li_ji}\n")
-                        for SNP, values in SNP_values:
-                            combined_p_value_li_ji = combine_function(values, li_ji)
+                        for SNP, data in SNP_values:
+                            combined_p_value_li_ji = combine_function(data, li_ji,args.data_type)
                             file.write(f"Combined p-value for {SNP}: {combined_p_value_li_ji}\n")
 
 
                         file.write(f"Bonferroni's correction with g* =  {g_adjusted}:\n")
-                        for SNP, values in SNP_values:
-                            combined_p_bc = combine_function(values, g_adjusted)
+                        for SNP, data in SNP_values:
+                            combined_p_bc = combine_function(data, g_adjusted)
                             file.write(f"Combined p-value for {SNP}: {combined_p_bc}\n")
 
 
-
                 else:
+
                     p_values = combine_pvalues(combine_function, SNP_values, metanalysis_needed, file)
             else:
                 file.write(f"Invalid method choice: {method}\n")
