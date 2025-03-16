@@ -66,3 +66,5 @@ the user has provided an input file named SNP_p_values.txt, which contains p-val
 
 For the STATA version see the respective metacp.hlp file within STATA
 
+Please cite:
+Nikolitsa EK, Kontou PI, Bagos PG. metacp: A versatile software package for combining dependent or independent p-values. BMC Bioinformatics. 2025
