@@ -10,27 +10,47 @@ where the 1st argument is the name of the input text file the user should provid
 The available methods are:
 
 logit: This method computes the combined p-value using a logistic transformation of the individual p-values. It sums the logit-transformed p-values and then applies a t-distribution to calculate the combined p-value.
+
 meanp: This method calculates the combined p-value by taking the mean of the individual p-values and transforming it using a normal distribution.
-fisher: This method uses Fisher's method to combine p-values by summing the log-transformed p-values and applying 
-	a chi-squared distribution to the result.
+
+fisher: This method uses Fisher's method to combine p-values by summing the log-transformed p-values and applying a chi-squared distribution to the result.
+
 stouffer: This method combines p-values using Stouffer's Z-score method. It converts each p-value to a Z-score, sums these Z-scores, and then transforms the sum using a normal distribution.
+
 wstouffer: This method combines p-values using Stouffer's Z-score method with weights. It converts each p-value to a Z-score, sums these Z-scores, and then transforms the sum divided by the square root of the sum of the square of weights using a normal distribution.
+
 invchi: This method combines p-values using the inverse chi-squared method, summing the inverse chi-squared statistics and transforming the sum using a chi-squared distribution.
+
 binomial: This method uses a binomial test to combine p-values, counting the number of p-values below a specified threshold and using the binomial distribution to calculate the combined p-value.
+
 cct: This method combines p-values using a Cauchy distribution. It transforms each p-value using the tangent function, sums these transformed values, and then transforms the sum using the inverse Cauchy cumulative distribution function.
+
 minp: This method calculates the combined p-value by taking the minimum of the individual p-values and adjusting it for the number of tests.
+
 mcm: This method combines p-values using the MinP-Cauchy-MinP (MCM) method. It first calculates the combined p-values using both the Cauchy and MinP methods and then takes the minimum of these values.
+
 cmc: This method combines p-values using the Cauchy-MinP-Cauchy (CMC) method. It transforms the individual p-values using the tangent function, sums these values, and then transforms the sum using the inverse Cauchy cumulative distribution function.
+
 bonferroni: This method applies the Bonferroni correction to combine p-values by adjusting the minimum p-value for the number of tests.
+
 adbonferroni: This method uses a generalized Bonferroni correction, adjusting the minimum p-value for the number of tests and the maximum correlation among the tests.
+
 cn: This method combines p-values using the Cheverud-Nyholt method, which adjusts for the effective number of tests based on eigenvalues of the correlation matrix.
+
 lj: This method uses the Li-Ji method to combine p-values, adjusting for the effective number of tests by considering the eigenvalues of the correlation matrix.
+
 gao: This method combines p-values using Gao's method, adjusting for the effective number of tests by considering a threshold cumulative eigenvalue sum.
+
 galwey: This method combines p-values using Galwey's method, adjusting for the effective number of tests based on the ratio of the sum of squared eigenvalues to the sum of eigenvalues.
+
 ebm: This method combines p-values using the Effective Brownian Motion (EBM) method, adjusting for correlations among tests by considering the covariance matrix.
+
 kost: This method combines p-values using Kost's adjustment to the EBM method, incorporating a polynomial fit for the correlation structure.
+
 yang: This method uses the Brown-Yang adjustment for combining p-values, accounting for correlations among tests with a polynomial fit and bias correction. 
+
 corstouffer:  This method combines p-values using Stouffer's Z-score method for dependent tests. It converts each p-value to a Z-score, sums these Z-scores, and then transforms the sum, divided by the sum of variance of all z-scores using a normal distribution.
+
 wcorstouffer:This method combines p-values using Weighted Stouffer's Z-score method for dependent tests. It converts each p-value to a Z-score, sums these Z-scores, and then transforms the sum divided by the sum of weights multiplied by the correlation coefficient using a normal distribution.
 
 
