@@ -64,3 +64,5 @@ python metacp.py SNP_p_values.txt output.txt p-values No fisher meanp bonferroni
 
 the user has provided an input file named SNP_p_values.txt, which contains p-values to be combined, the user does not want metanalysis to be performed and he does not provide a text file with the correlation matrix(the program will calculate by default a correlation matrix). meanp method, Fisher’s method and Bonferroni's to combine the p-values in the input file. The combined p-values will be printed in a text file provided by the user called output.txt.
 
+For the STATA version see the respective metacp.hlp file within STATA
+
