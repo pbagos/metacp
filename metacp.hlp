@@ -9,13 +9,13 @@ A versatile software package for combining dependent or independent p-values
 
 Syntax
 ------
-   ^metacp^ varlist(numeric),method(string) [ corr_matrix(varlist) ]
+   ^metacp^ varlist(numeric), method(string) stat(string) [ corr_matrix(varlist) weight_matrix(varlist) ]
    
    varlist contains the different variables (p-values or z-scores) to be analysed
 
 Description
 -----------
-^metacp^ is designed to perform meta-analysis of the p-values of the variables(studies) specified in ^varlist^.
+^metacp^ is designed to combine p-values of the variables(studies) specified in ^varlist^.
 The program takes as input the p-values or z-scores to be combined. Different rows can correspond to different 
 SNPs or genes from a GWAS, or probes/genes from transcriptomics studies. The different columns can correspond 
 to different statistical tests, different traits, different SNPs within a gene and so on, depending on the 
@@ -28,51 +28,63 @@ Options
 -------
 ^method^(string)          This is a required argument. The user has to specify one of the available methods:
 
-logitp: This method computes the combined p-value using a logistic transformation of the individual p-values. 
+logit: This method computes the combined p-value using a logistic transformation of the individual p-values. 
 	It sums the logit-transformed p-values and then applies a t-distribution to calculate the combined p-value.
 meanp: This method calculates the combined p-value by taking the mean of the individual p-values and transforming 
 	it using a normal distribution.
-fisherp: This method uses Fisher's method to combine p-values by summing the log-transformed p-values and applying 
+fisher: This method uses Fisher's method to combine p-values by summing the log-transformed p-values and applying 
 	a chi-squared distribution to the result.
-stoufferp: This method combines p-values using Stouffer's Z-score method. It converts each p-value to a Z-score, sums 
-	these Z-scores, and then transforms the sum using a normal distribution.
-invchi2p: This method combines p-values using the inverse chi-squared method, summing the inverse chi-squared 
+stouffer: This method combines p-values using Stouffer's z-score method. It converts each p-value to a z-score, sums 
+	these z-scores, and then transforms the sum using a normal distribution.
+wstouffer: This method combines p-values using Stouffer's z-score method with weights. It converts each p-value to a 
+	z-score, sums these z-scores, and then transforms the sum divided by the square root of the sum of the square 
+	of weights using a normal distribution.
+invchi: This method combines p-values using the inverse chi-squared method, summing the inverse chi-squared 
 	statistics and transforming the sum using a chi-squared distribution.
-binomialp: This method uses a binomial test to combine p-values, counting the number of p-values below a specified 
+binomial: This method uses a binomial test to combine p-values, counting the number of p-values below a specified 
 	threshold and using the binomial distribution to calculate the combined p-value.
-cauchyp: This method combines p-values using a Cauchy distribution. It transforms each p-value using the tangent 
+cct: This method combines p-values using a Cauchy distribution. It transforms each p-value using the tangent 
 	function, sums these transformed values, and then transforms the sum using the inverse Cauchy cumulative
 	distribution function.
 minp: This method calculates the combined p-value by taking the minimum of the individual p-values and adjusting 
 	it for the number of tests.
-MCM: This method combines p-values using the MinP-Cauchy-MinP (MCM) method. It first calculates the combined 
+mcm: This method combines p-values using the MinP-Cauchy-MinP (MCM) method. It first calculates the combined 
 	p-values using both the Cauchy and MinP methods and then takes the minimum of these values.
-CMC: This method combines p-values using the Cauchy-MinP-Cauchy (CMC) method. It transforms the individual 
+cmc: This method combines p-values using the Cauchy-MinP-Cauchy (CMC) method. It transforms the individual 
 	p-values using the tangent function, sums these values, and then transforms the sum using the inverse 
 	Cauchy cumulative distribution function.
-bonferronip: This method applies the Bonferroni correction to combine p-values by adjusting the minimum p-value for 
+bonferroni: This method applies the Bonferroni correction to combine p-values by adjusting the minimum p-value for 
 	the number of tests.
-bonferronig_p: This method uses a generalized Bonferroni correction, adjusting the minimum p-value for the number of 
+adbonferroni: This method uses a generalized Bonferroni correction, adjusting the minimum p-value for the number of 
 	tests and the maximum correlation among the tests.
-cheverud_nyholtp: This method combines p-values using the Cheverud-Nyholt method, which adjusts for the effective number 
+cn: This method combines p-values using the Cheverud-Nyholt method, which adjusts for the effective number 
 	of tests based on eigenvalues of the correlation matrix.
-li_jip: This method uses the Li-Ji method to combine p-values, adjusting for the effective number of tests by 
+lj: This method uses the Li-Ji method to combine p-values, adjusting for the effective number of tests by 
 	considering the eigenvalues of the correlation matrix.
-gaop: This method combines p-values using Gao's method, adjusting for the effective number of tests by considering 
+gao: This method combines p-values using Gao's method, adjusting for the effective number of tests by considering 
 	a threshold cumulative eigenvalue sum.
-galweyp: This method combines p-values using Galwey's method, adjusting for the effective number of tests based 
+galwey: This method combines p-values using Galwey's method, adjusting for the effective number of tests based 
 	on the ratio of the sum of squared eigenvalues to the sum of eigenvalues.
-EBM: This method combines p-values using the Effective Brownian Motion (EBM) method, adjusting for correlations 
+ebm: This method combines p-values using the Effective Brownian Motion (EBM) method, adjusting for correlations 
 	among tests by considering the covariance matrix.
-KostsMethodEBM: This method combines p-values using Kost's adjustment to the EBM method, incorporating a polynomial fit 
+kost: This method combines p-values using Kost's adjustment to the EBM method, incorporating a polynomial fit 
 	for the correlation structure.
-BrownbyYang: This method uses the Brown-Yang adjustment for combining p-values, accounting for correlations among 
+yang: This method uses the Brown-Yang adjustment for combining p-values, accounting for correlations among 
 	tests with a polynomial fit and bias correction. 
+corstouffer:  This method combines p-values using Stouffer's z-score method for dependent tests. It converts each 
+	p-value to a z-score, sums these z-scores, and then transforms the sum, divided by the sum of variance of
+	all z-scores using a normal distribution.
+wcorstouffer: This method combines p-values using Weighted Stouffer's z-score method for dependent tests. It converts
+	each p-value to a z-score, sums these z-scores, and then transforms the sum divided by the sum of weights 
+	multiplied by the correlation coefficient using a normal distribution.
+
 
 
 
 ^corr_matrix^(varlist)  This is an optional argument. The user may provide a correlation matrix 
                         in case of dependent tests.
+^weight_matrix^(varlist)  This is an optional argument. The user may provide a weight matrix 
+                        for Stouffer's weighted methods.
 
  
 
@@ -163,51 +175,34 @@ We run the metacp methods cct, minp, cmc, mcm for the combination of p-values _p
      
 References
 --------------------
-1.	Bernardo, J.M. and Smith, A.F. Bayesian theory. John Wiley & Sons; 2009.
-2.	Brown, M.B. A method for combining non-independent, one-sided tests of 
-	significance. Biometrics 1975:987-992.
-3.	Chen, Z. Robust tests for combining p-values under arbitrary dependency 
-	structures. Scientific Reports 2022;12(1):3158.
-4.	Cheverud, J.M. A simple correction for multiple comparisons in interval 
-	mapping genome scans. Heredity 2001;87(1):52-58.
-5.	Dunn, O.J. Estimation of the means of dependent variables. The Annals of 
-	Mathematical Statistics 1958:1095-1111.
-6.	Fisher, R.A. Statistical methods for research workers. In, Breakthroughs 
-	in statistics: Methodology and distribution. Springer; 1970. p. 66-70.
-7.	Galwey, N.W. A new measure of the effective number of tests, a practical 
-	tool for comparing families of non?independent significance tests. Genetic 
-	Epidemiology: The Official Publication of the International Genetic 
-	Epidemiology Society 2009;33(7):559-568.
-8.	Gao, X., Starmer, J. and Martin, E.R. A multiple testing correction method
-	for genetic association studies using correlated single nucleotide polymorphisms. 
-	Genetic Epidemiology: The Official Publication of the International Genetic 
-	Epidemiology Society 2008;32(4):361-369.
-9.	Goeman, J. and Solari, A. Multiple hypothesis testing in genomics.
-	Statistics in medicine 2014;33.
-10.	Kost, J.T. and McDermott, M.P. Combining dependent P-values. Statistics & 
-	Probability Letters 2002;60(2):183-190.
-11.	Li, J. and Ji, L. Adjusting multiple testing in multilocus analyses using 
-	the eigenvalues of a correlation matrix. Heredity 2005;95(3):221-227.
-12.	Liu, Y. and Xie, J. Cauchy combination test: a powerful test with analytic 
-	p-value calculation under arbitrary dependency structures. Journal of the 
-	American Statistical Association 2020;115(529):393-402.
-13.	Nyholt, D.R. A simple correction for multiple testing for single-nucleotide 
-	polymorphisms in linkage disequilibrium with each other. The American Journal 
-	of Human Genetics 2004;74(4):765-769.
-14.	Shi, Q., Pavey, E.S. and Carter, R.E. Bonferroni-based correction factor for 
-	multiple, correlated endpoints. Pharmaceutical statistics 2012;11(4):300-309.
-15.	Šidák, Z. Rectangular confidence regions for the means of multivariate normal 
-	distributions. Journal of the American statistical association 1967;62(318):626-633.
-16.	Stouffer, S.A., Suchman, E. A., Devinney, L. C., Star, S. A., & Williams, R. M. 
-	The American soldier: Adjustment during Army life. Princeton, NJ: Princeton 
-	University Press; 1949.
-17.	Tippett, L.H.C. The methods of statistics. 1931.
-18.	Wilkinson, B. A statistical consideration in psychological research. 
-	Psychological bulletin 1951;48(2):156.
-19.	Wilson, D.J. The harmonic mean p-value for combining dependent tests. 
-	Proceedings of the National Academy of Sciences 2019;116(4):1195-1200.
-20.	Yang, J.J., et al. An efficient genome-wide association test for multivariate 
-	phenotypes based on the Fisher combination function. BMC bioinformatics 2016;17:1-11.
+1.	Becker BJ. Combining significance levels.  The handbook of research synthesis. New York, NY, US: Russell Sage Foundation; 1994. p. 215-30.
+2.	Edgington ES. An additive method for combining probability values from independent experiments. The Journal of Psychology. 1972;80(2):351-63.
+3.	Fisher RA. Statistical methods for research workers.  Breakthroughs in statistics: Methodology and distribution: Springer; 1970. p. 66-70.
+4.	Stouffer SA, Suchman, E. A., Devinney, L. C., Star, S. A., & Williams, R. M. . The American soldier: Adjustment during Army life. Princeton, NJ: Princeton University Press; 1949.
+5.	Liptak T. On the combination of independent tests. Magyar Tud Akad Mat Kutato Int Kozl. 1958;3:171-97.
+6.	Mosteller F, Bush RR. Selected quantitative techniques. Handbook of social psychology ed. Cambridge, Mass: Addison-Wesley; 1954.
+7.	Lancaster H. The combination of probabilities: an application of orthonormal functions. Australian Journal of Statistics. 1961;3(1):20-33.
+8.	Bernardo JM, Smith AF. Bayesian theory: John Wiley & Sons; 2009.
+9.	Wilkinson B. A statistical consideration in psychological research. Psychological bulletin. 1951;48(2):156.
+10.	Goeman JJ, Rosenblatt JD, Nichols TE. The harmonic mean p-value: Strong versus weak control, and the assumption of independence. Proceedings of the National Academy of Sciences. 2019;116(47):23382-3.
+11.	Cheverud JM. A simple correction for multiple comparisons in interval mapping genome scans. Heredity. 2001;87(1):52-8.
+12.	Galwey NW. A new measure of the effective number of tests, a practical tool for comparing families of non-independent significance tests. Genetic Epidemiology: The Official Publication of the International Genetic Epidemiology Society. 2009;33(7):559-68.
+13.	Gao X, Starmer J, Martin ER. A multiple testing correction method for genetic association studies using correlated single nucleotide polymorphisms. Genetic Epidemiology: The Official Publication of the International Genetic Epidemiology Society. 2008;32(4):361-9.
+14.	Li J, Ji L. Adjusting multiple testing in multilocus analyses using the eigenvalues of a correlation matrix. Heredity. 2005;95(3):221-7.
+15.	Nyholt DR. A simple correction for multiple testing for single-nucleotide polymorphisms in linkage disequilibrium with each other. The American Journal of Human Genetics. 2004;74(4):765-9.
+16.	Shi Q, Pavey ES, Carter RE. Bonferroni-based correction factor for multiple, correlated endpoints. Pharmaceutical statistics. 2012;11(4):300-9.
+17.	Dunn OJ. Estimation of the means of dependent variables. The Annals of Mathematical Statistics. 1958:1095-111.
+18.	Sidak Z. Rectangular confidence regions for the means of multivariate normal distributions. Journal of the American statistical association. 1967;62(318):626-33.
+19.	Tippett LHC. The methods of statistics. 1931.
+20.	Liu Y, Xie J. Cauchy combination test: a powerful test with analytic p-value calculation under arbitrary dependency structures. Journal of the American Statistical Association. 2020;115(529):393-402.
+21.	Chen Z. Robust tests for combining p-values under arbitrary dependency structures. Scientific Reports. 2022;12(1):3158.
+22.	Wilson DJ. The harmonic mean p-value for combining dependent tests. Proceedings of the National Academy of Sciences. 2019;116(4):1195-200.
+23.	Brown MB. A method for combining non-independent, one-sided tests of significance. Biometrics. 1975:987-92.
+24.	Kost JT, McDermott MP. Combining dependent P-values. Statistics & Probability Letters. 2002;60(2):183-90.
+25.	Yang JJ, Li J, Williams LK, Buu A. An efficient genome-wide association test for multivariate phenotypes based on the Fisher combination function. BMC bioinformatics. 2016;17:1-11.
+26.	Zaykin DV. Optimally weighted Z-test is a powerful method for combining probabilities in meta-analysis. Journal of evolutionary biology. 2011;24(8):1836-41.
+27.	Nikolitsa EK, Kontou PI, Bagos PG. metacp: A versatile software package for combining dependent or independent p-values. BMC Bioinformatics. 2025
+
 
 
 
@@ -216,10 +211,11 @@ References
 Authors
 --------------------
 
-       Evgenia Nikolitsa, Panagiota Kontou , Pantelis Bagos
-	   Department of Computer Science and Biomedical Informatics, University of Thessaly, Lamia, GR35100, Greece 
-	   Department of Mathematics, University of Thessaly, Lamia, GR35100, Greece 
-	   email: http://www.compgen.org/tools/
+     	Evgenia Nikolitsa, Panagiota Kontou , Pantelis Bagos
+	Department of Computer Science and Biomedical Informatics, University of Thessaly, Lamia, GR35100, Greece 
+	Department of Mathematics, University of Thessaly, Lamia, GR35100, Greece 
+	email: pbagos@compgen.org 
+	source code: https://github.com/pbagos/metacp
 
 
 Also See
