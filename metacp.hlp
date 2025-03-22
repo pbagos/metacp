@@ -91,6 +91,40 @@ wcorstouffer: This method combines p-values using Weighted Stouffer's z-score me
 --------------------
 Examples
 -------------------
+
+Example 1
+----------------
+Assuming that the user wishes to use wstouffer, wcorstouffer or lancaster methods, a varlist with the weights is required as an argument in the command:
+	_z1			_z2			_z3
+-4.9370102	-5.8467402	-4.6607212
+-4.9189044	-5.845574	-4.6738512
+-1.3098616	-4.5207878	-5.0706497
+-4.8256693	-4.1408433	-1.8278999
+-3.6770322	-4.8083079	-4.114246
+-3.693354	-4.7223442	-3.989945
+-4.0287914	-4.6924596	-3.6345976
+-3.8329542	-4.6872991	-3.8750655
+-3.7483082	-4.6834651	-4.1746978
+-3.6105972	-4.6402146	-3.9309996
+
+We generate the weights in the dataset:
+
+gen w1 = 100
+gen w2 = 200
+gen w3 = 100
+
+
+We run the metacp methods wstouffer, wcorstouffer, lancaster for the combination of z-scores _z1-_z3:
+
+metacp _z1-_z3, method(wstouffer) stat(zscore) weight_matrix(w1 w2 w3)
+metacp _z1-_z3, method(wcorstouffer) stat(zscore) weight_matrix(w1 w2 w3)
+metacp _z1-_z3, method(lancaster) stat(zscore) weight_matrix(w1 w2 w3)
+
+
+
+Example 2
+----------------
+
 The following data are obtained by GWAR 
 Assuming that the data are in the following format:
 
@@ -166,10 +200,10 @@ _p1		 _p2	 	_p3	  	_cauchy_p	_min_p	  	_MCM_p		 _CMC_p
 .0003055	3.48e-06	.0000846	9.92e-06	.0000104	.0000198	.0000102
 
 We run the metacp methods cct, minp, cmc, mcm for the combination of p-values _p1-_p3:
-. metacp _p1-_p3,method(cct) 
-. metacp _p1-_p3,method(minp) 
-. metacp _p1-_p3,method(mcm)
-. metacp _cauchy_p _min_p,method(cmc) 
+. metacp _p1-_p3,method(cct) stat(pvalue)
+. metacp _p1-_p3,method(minp) stat(pvalue)
+. metacp _p1-_p3,method(mcm) stat(pvalue)
+. metacp _cauchy_p _min_p,method(cmc) stat(pvalue)
 	
 	                   
      
